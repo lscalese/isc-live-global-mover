@@ -1,6 +1,7 @@
 ## What's new in this version
 
-Add unit test.
+Add unit test.  
+^GBLOCKCOPY Usage instead Merge command.  
 
 # Global mover tool
 
@@ -98,10 +99,6 @@ Set mover = ##class(Iris.Tools.LiveGlobalMover).%New()
 Set mover.global = $lb("^YourGlobalToMoveD")
 Set mover.dbSource = "irisapp"
 Set mover.dbTarget = "targetdb"
-Set mover.verbose = 1
-Set mover.disableJrn = 1
-Set mover.deleteSourceDataAfterMoving=0
-Set mover.gblockcopyMode=1
 Set tSc = mover.move()
 ```
 Explore your data, check global mapping.  

@@ -40,7 +40,7 @@ Property dbTarget As %String;
 Property namespace As %String [ InitialExpression = {$namespace} ];
 
 /// Perform a DISABLE^%NOJRN before copy the globals.
-Property disableJrn As %Boolean [ InitialExpression = 0 ];
+Property disableJrn As %Boolean [ InitialExpression = 1 ];
 
 /// contain the full path of dbSource
 Property dbSourceDir As %String [ Private ];
@@ -55,7 +55,7 @@ Property firstJrnToReload As %String(MAXLEN = 256);
 Property currentJournal As %SYS.Journal.File [ Private ];
 
 /// If true, Logs are also written to the current device.
-Property verbose As %Boolean [ InitialExpression = 0 ];
+Property verbose As %Boolean [ InitialExpression = 1 ];
 
 Property lastJrnAddress As %String [ Private ];
 
@@ -65,7 +65,7 @@ Property deleteSourceDataAfterMoving As %Boolean [ InitialExpression = 0 ];
 Property secureDeleteFlags As %List [ InitialExpression = {$lb(0,0)}, MultiDimensional, Private ];
 
 /// Use GBLOCKCOPY tool instead Merge command to copy globals<br/>
-Property gblockcopyMode As %Boolean [ InitialExpression = 0 ];
+Property gblockcopyMode As %Boolean [ InitialExpression = 1 ];
 
 /// Called by move method.<br/>
 /// Calculate dbSourceDir and dbTargetDir (private property) <br/>
