@@ -3,7 +3,7 @@
 /// <b>Usage :</b> <br/><br/>
 /// <code>
 /// Set mover = ##class(Iris.Tools.LiveGlobalMover).%New()<br/>
-/// Set mover.global = $lb("^HotGblMover.Test")<br/>
+/// Set mover.global = $lb("^YourGlobalToMove")<br/>
 /// Set mover.dbSource = "YOURSOURCEDB"<br/>
 /// Set mover.dbTarget = "YOURTARGETDB"<br/>
 /// Set sc = mover.move()<br/>
@@ -13,7 +13,8 @@
 /// <li>Journal Freeze On Error must be SET to 1.</li>
 /// </ul><br/>
 /// <b>Warning</b><br/>
-/// <b>Don't use with mirroring</b>.<br/>
+/// <b>Don't use with an active mirror.</b>.<br/>
+/// <b>Currently not tested with ECP</b>.<br/>
 Class Iris.Tools.LiveGlobalMover Extends %RegisteredObject
 {
 
@@ -66,8 +67,9 @@ Property secureDeleteFlags As %List [ InitialExpression = {$lb(0,0)}, MultiDimen
 /// Calculate dbSourceDir and dbTargetDir (private property) <br/>
 Method prepare() As %Status
 {
+	
 	Set sc = $$$OK
-	Try{
+	Try {
 		Do ..log("[*] Prepare Global mover ...")
 		Do ..log($c(9)_"dbSourceDir for "_..dbSource_"...")
 		$$$TOE(sc,..dbSourceDirSet(..dbSource))
@@ -75,7 +77,7 @@ Method prepare() As %Status
 		Do ..log($c(9)_"dbTargetDir for "_..dbTarget_"...")
 		$$$TOE(sc,..dbTargetDirSet(..dbTarget))
 		Do ..log($c(9)_"dbTargetDir for "_..dbTarget_" is set with value "_..dbTargetDir)
-	}Catch(ex) {
+	} Catch (ex) {
 		Set sc = ex.AsStatus()
 	}
 	Return sc
@@ -88,7 +90,7 @@ Method prepare() As %Status
 Method validate() As %Status
 {
 	Set sc = $$$OK,ns=$namespace
-	Return:..dbTargetDir=..dbSourceDir $$$ERROR(5001,"Target DB and Source DB must not is the same")
+	Return:..dbTargetDir=..dbSourceDir $$$ERROR(5001,"Target DB and Source DB must not the same")
 	Return:..dbSourceDir="" $$$ERROR(5001,"dbSourceDir is not set.")
 	Return:..dbTargetDir="" $$$ERROR(5001,"dbTargetDiris not set.")
 	Return:'##class(%SYS.Namespace).Exists(..namespace) $$$ERROR(5001,$$$FormatText("Namespace %1 does not exist.",..namespace))
@@ -127,13 +129,13 @@ Method validate() As %Status
 			Return $$$ERROR($$$GeneralError,$$$FormatText("FreezeOnError is not SET. Operation aborted."))
 		}
 		Kill jrnProperties
-		Set dbs = ##class(SYS.Database).%OpenId(..dbSource,,.sc)
+		
+		Set dbs = ##class(SYS.Database).%OpenId(..dbSourceDir,,.sc)
 		If $$$ISERR(sc) $$$ThrowStatus(sc)
 		Zn ns
 		Return:dbs.GlobalJournalState'=3 $$$ERROR($$$GeneralError,$$$FormatText("Journal is not active on %1 database, GlobalMover.OnLineMover can't guarantee data integrity. Operation aborted.",..dbSource))
 		; Return:dbs.Mirrored $$$ERROR($$$GeneralError,"Currently unsupported for mirrored database.")
-	}
-	Catch(ex) {
+	} Catch (ex) {
 		Zn ns
 		Throw ex
 	}
@@ -183,7 +185,7 @@ Method loadDataFromJournal() As %Status [ Private ]
 	For i=1:1:(nbPass-1) {
 		Do ..log($c(9)_$$$FormatText("Journal pass %1 of %2, file %3, start after address %4",i,nbPass,..currentJournal.Name,..lastJrnAddress))
 		$$$TOE(sc,..throughJournalRecord(..lastJrnAddress))
-        Set sc = ##class(%SYS.Journal.System).RollToNextFile(1,.newFName)   ; force switch to have a small last journal file to reload.
+        Set newFName="", sc = ##class(%SYS.Journal.System).RollToNextFile(1,.newFName)   ; force switch to have a small last journal file to reload.
         Hang 2
 	}
 	Do ..log($c(9)_$$$FormatText("Journal pass %1 of %2, file %3, start after address %4 (last pass)",nbPass,nbPass,..currentJournal.Name,..lastJrnAddress))
@@ -206,6 +208,7 @@ Method lastPassProcess() As %Status [ Private ]
 		$$$TOE(sc,..setAllGlobalMapping()) 
 		Do ..log($c(9,9)_$$$FormatText("Time elapsed since freezeSystem %1 sec.",$j(($zh-frzStart),11,6)))
 		Do ..log($c(9,9)_"Disable mode 10")
+		Set newFName=""
 		Do ##class(%SYS.Journal.System).RollToNextFile(1,.newFName)
 		Set sc = ##class(Iris.Tools.Freeze).DisableSetSwitch10()
 	}Catch(ex) {
@@ -213,7 +216,7 @@ Method lastPassProcess() As %Status [ Private ]
 		Do ##class(%SYS.System).WriteToConsoleLog("LiveGlobalMover : error while last pass processing "_$SYSTEM.Status.GetErrorText(sc),0,2)
 		Do ##class(Iris.Tools.Freeze).DisableSetSwitch10()
 	}
-	Do ..log("[*] Journal roll to next file "_newFName)
+	Do:$Get(newFName)'="" ..log("[*] Journal roll to next file "_newFName)
 	Return sc
 }
 

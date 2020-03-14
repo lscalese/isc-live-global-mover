@@ -33,7 +33,7 @@ ClassMethod getDbDir(dbName As %String) As %String
 }
 
 /// Create the global mapping for the given global and the namespace (namespace property)
-Method setGlobalMapping(globalName As %String, namespace As %String, dbTarget As %String) As %Status
+ClassMethod setGlobalMapping(globalName As %String, namespace As %String, dbTarget As %String) As %Status
 {
 	Set sc = $$$OK, ns = $namespace
 	Set:$e(globalName,1)="^" globalName=$e(globalName,2,*)	; Remove the leading character ^
