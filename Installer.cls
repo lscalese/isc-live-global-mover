@@ -11,8 +11,8 @@ XData setup
   <Namespace Name="${Namespace}" Code="${Namespace}" Data="${Namespace}" Create="yes" Ensemble="no">
 
     <Configuration>
-      <Database Name="${Namespace}" Dir="/opt/${app}/data" Create="yes" Resource="%DB_${Namespace}"/>
-      <Database Name="targetdb" Dir="/opt/${app}/targetdb" Create="yes" Resource="%DB_${Namespace}"/>
+      <Database Name="${Namespace}" Dir="/opt/${app}/data" Create="yes" Resource="%DB_${Namespace}" ExpansionSize="250"/>
+      <Database Name="targetdb" Dir="/opt/${app}/targetdb" Create="yes" Resource="%DB_${Namespace}" ExpansionSize="250"/>
       <Import File="${SourceDir}" Flags="ck" Recurse="1"/>
     </Configuration>
     <CSPApplication Url="/csp/${app}" Directory="${cspdir}${app}"  ServeFiles="1" Recurse="1" MatchRoles=":%DB_${Namespace}" AuthenticationMethods="32"

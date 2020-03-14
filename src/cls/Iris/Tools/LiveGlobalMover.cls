@@ -20,7 +20,7 @@ Class Iris.Tools.LiveGlobalMover Extends %RegisteredObject
 {
 
 /// Number of scan journal file.
-Parameter NBPASS = 3;
+Parameter NBPASS = 5;
 
 /// A listbuild contain all globals to move. ex: $lb("^LiveGlobalMover.Test")
 Property global As %List;

@@ -171,7 +171,7 @@ ClassMethod GenerateData(timeout As %Integer = 30, randomHang As %Boolean = 1) A
             cnt=$Increment(cnt)
         If cnt =  maxBeforeHang {
             Set total = (total + cnt), cnt = 0, maxBeforeHang = $Random(max) + 1    ; setup for random hang
-            hang:randomHang 1  ; reduce the IO usage.
+            hang:randomHang 2  ; reduce the IO usage.
             Quit:$zh>end ; check timeout ...
         }
     }

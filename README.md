@@ -23,7 +23,7 @@ This is very simple, but there is a few steps :
 1. Before starting the copy, we perform a journal switch.
 2. Copy the global from source database to target database.
 3. When the copy is done, we check if there is any new global entries during the copy.  
-   * We through journal files (3 pass) to look for any entries and perform the corresponding command (Set, Kill, ZKill) to the target database.  
+   * We through journal files (5 pass) to look for any entries and perform the corresponding command (Set, Kill, ZKill) to the target database.  
    * At the last pass, **the system is temporary switch to mode 10**.  We need to ensure there is no new global entries for a short time.
    * Setting up the global mapping.
    * Disable mode 10.
@@ -38,6 +38,7 @@ After the copy, if a switch occurs to a node without the correct global mapping 
 Currently not tested with application server.  
 
 **This is experimental, don't use without testing!**
+Under MIT License, use this tool at your own risk.  
 
 Feel free to improve or modify as needed.  
 
@@ -102,6 +103,7 @@ Set mover.deleteSourceDataAfterMoving=0
 Set tSc = mover.move()
 ```
 Explore your data, check global mapping.  
+Advice : Expand the size of the target database in order to avoid expand during the copy.  
 
 ## How to start coding
 This repository is ready to code in VSCode with ObjectScript plugin.
