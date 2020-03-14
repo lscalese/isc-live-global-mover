@@ -29,11 +29,10 @@ ClassMethod StartUnitTest()
     Quit
 }
 
-Method TestMoveGlobal() As %Status
+/*Method TestMoveGlobal() As %Status
 {
     Return ..commonMoveGlobal(0)
-}
-
+}*/
 Method TestMoveGlobalUseGblCopy() As %Status
 {
     Return ..commonMoveGlobal(1)
@@ -58,11 +57,11 @@ Method commonMoveGlobal(gblockcopyMode As %Boolean) As %Status
     Return tSc
 }
 
-Method TestMoveGlobalWithConcurrentWrite() As %Status
+/*Method TestMoveGlobalWithConcurrentWrite() As %Status
 {
     Return ..commonMoveGlobalWithConcurrentWrite(0)
 }
-
+*/
 Method TestMoveGlobalWithConcurrentWriteUseGblCopy() As %Status
 {
     Return ..commonMoveGlobalWithConcurrentWrite(1)

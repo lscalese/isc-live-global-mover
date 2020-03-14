@@ -1,7 +1,8 @@
 ## What's new in this version
 
-Add unit test.  
-^GBLOCKCOPY Usage instead Merge command.  
+* Add unit test.  
+* ^GBLOCKCOPY Usage instead Merge command (increase performance).  
+* Using Journal.Restore instead of %SYSTEM.Journal API (increase performance).  
 
 # Global mover tool
 
