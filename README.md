@@ -14,7 +14,7 @@ When a GBLOKCOPY is not enough this tool could help you.
 
 ## Typical use case
 
-You have a large application with large databases\global and you need to change the storage architecture.  
+You have a large application with large databases\globals and you need to change the storage architecture.  
 
 ## How it work?
 
@@ -38,6 +38,8 @@ After the copy, if a switch occurs to a node without the correct global mapping 
 Currently not tested with application server.  
 
 **This is experimental, don't use without testing!**
+
+Feel free to improve or modify as needed.  
 
 ## Prerequisites
 This needs to have git and docker installed.
@@ -93,7 +95,6 @@ Do ##class(Iris.Tools.Test.TestGlobalMover).StartUnitTest()
 Set mover = ##class(Iris.Tools.LiveGlobalMover).%New()
 Set mover.global = $lb("^YourGlobalToMoveD")
 Set mover.dbSource = "irisapp"
-Return:$$$ISERR(tSc) tSc
 Set mover.dbTarget = "targetdb"
 Set mover.verbose = 1
 Set mover.disableJrn = 1
