@@ -48,4 +48,33 @@ ClassMethod setGlobalMapping(globalName As %String, namespace As %String, dbTarg
 	Return sc
 }
 
+ClassMethod syncGblockCopy(infile As %String, outfile As %String) As %Status
+{
+	Set tSc = $$$OK, successCopyFound = 0
+	JOB ^GBLOCKCOPY:("%SYS"::infile:outfile):3
+	If '$Test {
+		Return $$$ERROR($$$GeneralError,"GBLOCKCOPY Job error.")
+	}
+	Set pid = $ZChild
+	For  {
+		; wait end of GBLOCKCOPY process
+		Hang 5
+		Quit:'##class(%SYS.ProcessQuery).%ExistsId(pid)
+	}
+
+	Set stream=##class(%Stream.FileCharacter).%New()
+	Set sc=stream.LinkToFile(outfile)
+	While 'stream.AtEnd {
+		Set line=stream.ReadLine()
+		If line [ "Copy of data has completed" {
+			Set successCopyFound = 1
+			Quit
+		}
+	}
+	Kill stream
+
+	Set:'successCopyFound tSc = $$$ERROR($$$GeneralError,"Message ""Copy of data has completed "" is not found in output glblokcopy, check file : "_outfile)
+	Return tSc
+}
+
 }

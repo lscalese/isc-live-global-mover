@@ -64,6 +64,9 @@ Property deleteSourceDataAfterMoving As %Boolean [ InitialExpression = 0 ];
 /// For internal use.
 Property secureDeleteFlags As %List [ InitialExpression = {$lb(0,0)}, MultiDimensional, Private ];
 
+/// Use GBLOCKCOPY tool instead Merge command to copy globals<br/>
+Property gblockcopyMode As %Boolean [ InitialExpression = 0 ];
+
 /// Called by move method.<br/>
 /// Calculate dbSourceDir and dbTargetDir (private property) <br/>
 Method prepare() As %Status
@@ -270,17 +273,13 @@ Method switchJournal() As %Status [ Private ]
 
 Method copyGblList() As %Status [ Private ]
 {
-	Set sc = $$$OK
-	Set ptr = 0
-	While $listnext(..global,ptr,gbl) {
-		Set ..currentGlobal = gbl
-		Do ..log($c(9)_$$$FormatText("Starting Copy %1",..currentGlobal))
-		$$$TOE(sc,..copyCurrentGlobal())
-		Do ..log($c(9)_$$$FormatText("Copy %1 OK",..currentGlobal))
+	Set tSc = $$$OK
+	If (..gblockcopyMode) {
+		Set tSc = ..usingGBLOCKCOPY()
+	} Else {
+		Set tSc = ..usingMergeCommand()
 	}
-	Set ..currentGlobal=""
-	Set $li(..secureDeleteFlags,1)=1
-	Return sc
+	Return tSc
 }
 
 Method deleteSourceData() As %Status [ Private ]
@@ -295,6 +294,60 @@ Method deleteSourceData() As %Status [ Private ]
 		Do:..disableJrn ENABLE^%NOJRN
 	}
 	Return sc
+}
+
+Method usingMergeCommand() As %Status [ Private ]
+{
+	Set sc = $$$OK
+	Set ptr = 0
+	While $listnext(..global,ptr,gbl) {
+		Set ..currentGlobal = gbl
+		Do ..log($c(9)_$$$FormatText("Starting Copy %1",..currentGlobal))
+		$$$TOE(sc,..copyCurrentGlobal())
+		Do ..log($c(9)_$$$FormatText("Copy %1 OK",..currentGlobal))
+	}
+	Set ..currentGlobal=""
+	Set $li(..secureDeleteFlags,1)=1
+	Return sc
+}
+
+Method usingGBLOCKCOPY() As %Status [ Private ]
+{
+	Set tSc = $$$OK
+
+	Set infile = $zu(12,"temp")_"gblockcopy-in.txt"
+	Set outfile = $zu(12,"temp")_"gblockcopy-out.txt"
+	Do:'##class(%File).DirectoryExists($zu(12,"temp")) ##class(%File).CreateDirectoryChain($zu(12,"temp"))
+	Do:'##class(%File).Exists(infile) ##class(%File).Delete(infile)
+	Do:'##class(%File).Exists(outfile) ##class(%File).Delete(outfile)
+	
+	Set gblockcopyInput = ##class(%File).%New(infile)
+	Do gblockcopyInput.Open("WSN")
+	Do gblockcopyInput.WriteLine("1")	; Interactive copy
+	Do gblockcopyInput.WriteLine("1")	; Copy from Database to Database
+	Do gblockcopyInput.WriteLine(..dbSourceDir) ; Source Directory for Copy
+	Do gblockcopyInput.WriteLine(..dbTargetDir) ; Destination Directory for Copy
+	Do gblockcopyInput.WriteLine("No") ; All Globals?
+	Set ptr = 0
+	While $listnext(..global,ptr,gbl) {
+		Do gblockcopyInput.WriteLine($e(gbl,2,*)) ; Global ^
+	}
+	Do gblockcopyInput.WriteLine("")  ; Global ^
+	Do gblockcopyInput.WriteLine($s(..disableJrn:"Yes",1:"No")) ;Turn journaling off for this copy?
+	Do gblockcopyInput.WriteLine("Yes") ;Confirm copy?
+	Do gblockcopyInput.WriteLine("No") ; Do you want to save statistics for later review? 
+	Do gblockcopyInput.WriteLine("3") ; Exit
+	Do gblockcopyInput.SaveStream()
+	Do gblockcopyInput.Close()
+	Kill gblockcopyInput
+
+	Do ..log("Input gblockcopy file "_infile)
+	Do ..log("Output gblockcopy file "_outfile)
+	;return $$$ERROR(5001,"test")
+	Do ..log("Starting gblockcopy process...")
+	Set tSc = ##class(Iris.Tools.DBUtils).syncGblockCopy(infile,outfile)
+	Do ..log("gblockcopy process ended with status "_$SYSTEM.Status.GetOneErrorText(tSc))
+	Return tSc
 }
 
 /// Perfom a Merge command for the current global to move.

@@ -9,8 +9,8 @@ When you use a GBLOKCOPY, you should stop your application (or a part of your ap
 Depending your global size and fragmentation, the copy can take while (a few seconds, minutes, hours ...).  
 
 The easiest way is simply stop application, perform a GBLOCKCOPY and then apply a global mapping.  
-Whatever the reason sometimes, you can do that.  Stopping the application a few hours is just impossible (contractual up time reason, ...).  
-When a GBLOKCOPY is not enough this tool could help you.  
+Whatever the reason sometimes, you can't do that.  Stopping the application a few hours is just impossible (contractual up time reason, ...).  
+When a GBLOKCOPY is not enough this tool could help you or just open your mind to other possibilities.  
 
 ## Typical use case
 
@@ -24,6 +24,7 @@ This is very simple, but there is a few steps :
 2. Copy the global from source database to target database.
 3. When the copy is done, we check if there is any new global entries during the copy.  
    * We through journal files (5 pass) to look for any entries and perform the corresponding command (Set, Kill, ZKill) to the target database.  
+   * After each pass a journal switch is performed in order to have the smallest possible journal file for the last pass.  
    * At the last pass, **the system is temporary switch to mode 10**.  We need to ensure there is no new global entries for a short time.
    * Setting up the global mapping.
    * Disable mode 10.
@@ -100,6 +101,7 @@ Set mover.dbTarget = "targetdb"
 Set mover.verbose = 1
 Set mover.disableJrn = 1
 Set mover.deleteSourceDataAfterMoving=0
+Set mover.gblockcopyMode=1
 Set tSc = mover.move()
 ```
 Explore your data, check global mapping.  

@@ -31,13 +31,23 @@ ClassMethod StartUnitTest()
 
 Method TestMoveGlobal() As %Status
 {
+    Return ..commonMoveGlobal(0)
+}
+
+Method TestMoveGlobalUseGblCopy() As %Status
+{
+    Return ..commonMoveGlobal(1)
+}
+
+Method commonMoveGlobal(gblockcopyMode As %Boolean) As %Status
+{
     Set tSc = $$$OK
     Try {
         Set timeOutGenData = 15
         Do $$$LogMessage($$$FormatText("Starting generate initial data ^Global.ToMoveD while %1 seconds.",timeOutGenData))
         $$$TOE(tSc,..GenerateData(timeOutGenData,$$$NO))
         Do $$$AssertStatusOK(tSc,$$$FormatText("Generate data while %1 sec.",timeOutGenData))
-        Set tSc = ..MoveData()
+        Set tSc = ..MoveData(gblockcopyMode)
         Do $$$AssertStatusOK(tSc,$$$FormatText("Global mover return a status: %1.",$SYSTEM.Status.GetOneErrorText(tSc)))
         Return:$$$ISERR(tSc) tSc
         Set tSc = ..CompareData()
@@ -49,6 +59,16 @@ Method TestMoveGlobal() As %Status
 }
 
 Method TestMoveGlobalWithConcurrentWrite() As %Status
+{
+    Return ..commonMoveGlobalWithConcurrentWrite(0)
+}
+
+Method TestMoveGlobalWithConcurrentWriteUseGblCopy() As %Status
+{
+    Return ..commonMoveGlobalWithConcurrentWrite(1)
+}
+
+Method commonMoveGlobalWithConcurrentWrite(gblockcopyMode As %Boolean) As %Status
 {
     Set tSc = $$$OK
     Try {
@@ -63,7 +83,7 @@ Method TestMoveGlobalWithConcurrentWrite() As %Status
         Set jobIsRunning = $Test
         Do $$$AssertEquals(jobIsRunning,1,"Job generate concurrent write : "_jobIsRunning)
         Do $$$LogMessage($$$FormatText("Starting global mover.",timeOutGenData))
-        Set tSc = ..MoveData()
+        Set tSc = ..MoveData(gblockcopyMode)
         Do $$$AssertStatusOK(tSc,$$$FormatText("Global mover return a status : %1",$System.Status.GetOneErrorText(tSc)))
         Hang:$d(^CacheTempGenData) (timeOutGenData+2)-($zh-start)
         Do $$$LogMessage($$$FormatText("Starting checking missing data.",timeOutGenData))
@@ -81,7 +101,7 @@ Method TestMoveGlobalWithConcurrentWrite() As %Status
     Return tSc
 }
 
-Method MoveData() As %Status
+Method MoveData(gblockcopyMode As %Boolean = 0) As %Status
 {
     #dim mover As Iris.Tools.LiveGlobalMover
     Set mover = ##class(Iris.Tools.LiveGlobalMover).%New()
@@ -91,6 +111,7 @@ Method MoveData() As %Status
 	Set mover.dbTarget = ..#TARGETDB
 	Set mover.verbose = 1
 	Set mover.disableJrn = 1
+    Set mover.gblockcopyMode = gblockcopyMode
 	Set mover.deleteSourceDataAfterMoving=0
     Set tSc = mover.prepare()
     Return:$$$ISERR(tSc) tSc
