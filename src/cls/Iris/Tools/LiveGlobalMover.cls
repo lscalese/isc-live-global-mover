@@ -20,7 +20,7 @@ Class Iris.Tools.LiveGlobalMover Extends %RegisteredObject
 {
 
 /// Number of scan journal file.
-Parameter NBPASS = 5;
+Parameter NBPASS = 3;
 
 /// A listbuild contain all globals to move. ex: $lb("^LiveGlobalMover.Test")
 Property global As %List;
@@ -67,6 +67,7 @@ Property secureDeleteFlags As %List [ InitialExpression = {$lb(0,0)}, MultiDimen
 /// Use GBLOCKCOPY tool instead Merge command to copy globals<br/>
 Property gblockcopyMode As %Boolean [ InitialExpression = 1 ];
 
+Property nbpass As %Integer [ InitialExpression = { ..#NBPASS } ];
 /// Called by move method.<br/>
 /// Calculate dbSourceDir and dbTargetDir (private property) <br/>
 Method prepare() As %Status
@@ -178,42 +179,64 @@ Method move() As %Status
 	Return sc
 }
 
+Method journalRestore(firstJournal As %String, lastJournal As %String) As %Status [ Private ]
+{
+	Set tSc = $$$OK
+	Set restOref = ##class(Journal.Restore).%New()
+	Set restOref.FirstFile = firstJournal
+	Set restOref.LastFile = lastJournal
+	Set restOref.DisableJournaling = ..disableJrn
+	Set restOref.SourceDatabases.Insert(..dbSourceDir)
+	Set tSc = restOref.RedirectDatabase(..dbSourceDir,..dbTargetDir)
+	Return:$$$ISERR(tSc) tSc
+	Set ptr = 0
+	While $listnext(..global,ptr,gbl) {
+		Set tSc = restOref.SelectUpdates(..dbSourceDir,$e(gbl,NBPASS2,*))
+		Quit:$$$ISERR(tSc)
+	}
+	Return:$$$ISERR(tSc)
+	Set tSc=RestOref.Run()
+	Return tSc
+}
+
 Method loadDataFromJournal() As %Status [ Private ]
 {
-	Set sc = $$$OK
-	Set ..currentJournal = ##class(%SYS.Journal.File).%New()
-	Set currentJrnFName = ..firstJrnToReload
-	$$$TOE(sc,..currentJournal.Open(currentJrnFName))
-	Set nbPass = ..#NBPASS
-	Set:nbPass<3 nbPass = 3 ; force minimum 3 pass.
-	For i=1:1:(nbPass-1) {
-		Do ..log($c(9)_$$$FormatText("Journal pass %1 of %2, file %3, start after address %4",i,nbPass,..currentJournal.Name,..lastJrnAddress))
-		$$$TOE(sc,..throughJournalRecord(..lastJrnAddress))
-        Set newFName="", sc = ##class(%SYS.Journal.System).RollToNextFile(1,.newFName)   ; force switch to have a small last journal file to reload.
-        Hang 2
+	Set tSc = $$$OK
+	Return:$$$ISERR(tSc) tSc
+	Set:..nbpass<2 ..nbpass=2
+	For i=1:1:(..nbpass-1) {
+		Set firstJournal = ..firstJrnToReload,
+			newFName = "",
+			lastJournal = ##class(%SYS.Journal.System).GetCurrentFileName(),
+			tSc = ##class(%SYS.Journal.System).RollToNextFile(1,.newFName),
+			..firstJrnToReload = newFName
+		Quit:$$$ISERR(tSc)
+		Do ..log($c(9,9)_$$$FormatText("Global restore from journal pass %1, first journal %2, last journal %3",i,firstJournal,lastJournal)
+		Set tSc = ..journalRestore( ##class(%File).GetFilename(firstJournal),##class(%File).GetFilename(lastJournal))
+		Quit:$$$ISERR(tSc)
 	}
-	Do ..log($c(9)_$$$FormatText("Journal pass %1 of %2, file %3, start after address %4 (last pass)",nbPass,nbPass,..currentJournal.Name,..lastJrnAddress))
-	$$$TOE(sc,..lastPassProcess())
-	Set $li(..secureDeleteFlags,2)=1
-	Return sc
+	Return:$$$ISERR(tSc) tSc
+	Set tSc = ..lastPassProcess()
+	Return tSc
 }
 
 Method lastPassProcess() As %Status [ Private ]
 {
-	Set sc = $$$OK
+	Set sc = $$$OK, newFName = ""
 	Try {
 		Do ..log($c(9,9)_"Switch mode 10")
 		$$$TOE(sc,##class(Iris.Tools.Freeze).EnableSetSwitch10()) ; probably some changes here for ECP support.
-		Set frzStart = $zh
-		Do:..disableJrn DISABLE^%NOJRN
-		$$$TOE(sc,..throughJournalRecord(..lastJrnAddress)) ; a last pass on journal file from last address treated.
-		Do:..disableJrn ENABLE^%NOJRN
+		Set frzStart = $zh,
+			lastJournal = ##class(%SYS.Journal.System).GetCurrentFileName()
+		$$$TOE(tSc,##class(%SYS.Journal.System).RollToNextFile(1,.newFName))
+		Do ..log($c(9,9)_"Journal switch to "_newFName)
+		Do ..log($c(9,9)_$$$FormatText("Global restore from journal last pass, first journal %2, last journal %3",firstJournal,lastJournal)
+		$$$TOE(tSc,..journalRestore( ##class(%File).GetFilename(..firstJrnToReload),##class(%File).GetFilename(lastJournal)))
+		Do ..log($c(9,9)_"Global restore from journal last pass done.")
 		Do ..log($c(9,9)_"Set global mapping...")
 		$$$TOE(sc,..setAllGlobalMapping()) 
 		Do ..log($c(9,9)_$$$FormatText("Time elapsed since freezeSystem %1 sec.",$j(($zh-frzStart),11,6)))
 		Do ..log($c(9,9)_"Disable mode 10")
-		Set newFName=""
-		Do ##class(%SYS.Journal.System).RollToNextFile(1,.newFName)
 		Set sc = ##class(Iris.Tools.Freeze).DisableSetSwitch10()	; probably some changes here for ECP support.
 	}Catch(ex) {
 		Set sc = ex.AsStatus()
@@ -221,45 +244,6 @@ Method lastPassProcess() As %Status [ Private ]
 		Do ##class(Iris.Tools.Freeze).DisableSetSwitch10()
 	}
 	Do:$Get(newFName)'="" ..log("[*] Journal roll to next file "_newFName)
-	Return sc
-}
-
-Method throughJournalRecord(startAfterAddress As %Integer = "") As %Status [ Private ]
-{
-	#dim currentRecord As %SYS.Journal.SetKillRecord
-	Set sc = $$$OK
-	Set currentJrnFName = ..currentJournal.Name
-	Set currentRecord = $s(startAfterAddress="":..currentJournal.FirstRecord,1:..currentJournal.GetRecordAfter(startAfterAddress))
-	Set lowerDBSourceDir =$zcvt(..dbSourceDir,"l")
-	For  {
-		If '$isobject(currentRecord) {
-			Quit:(currentJrnFName=##class(%SYS.Journal.System).GetCurrentFileName())
-			$$$TOE(sc,##class(%SYS.Journal.File).GetNext(currentJrnFName,.nextFname))
-			$$$TOE(sc,..currentJournal.Open(nextFname))
-			Set currentJrnFName = nextFname
-			Set ..lastJrnAddress=""
-			Do ..log($c(9,9)_$$$FormatText("Loading Journal %1 ...",currentJrnFName))
-			Set currentRecord=..currentJournal.FirstRecord
-			Quit:'$isobject(currentRecord)
-		}
-		
-		If (currentRecord.%ClassName(0)="SetKillRecord")||(currentRecord.%ClassName(0)="BitSetRecord")
-				&&($lf(..global,$qs(currentRecord.GlobalNode,0))>0)
-				&&($zcvt(currentRecord.DatabaseName,"l")=lowerDBSourceDir) {
-			Set newRefGbl = "^[""^^"_..dbTargetDir_"""]"_$e(currentRecord.GlobalNode,2,*)
-			If (currentRecord.TypeName="SET") {
-				Set @newRefGbl=currentRecord.NewValue
-			}ElseIf (currentRecord.TypeName="KILL"){
-				Kill @newRefGbl
-			}ElseIf (currentRecord.TypeName="ZKILL") {
-				ZKill @newRefGbl
-			}ElseIf (currentRecord.TypeName="KILLdes"){
-			 	Kill @newRefGbl
-			}
-		}
-		Set ..lastJrnAddress =currentRecord.Address
-		Set currentRecord = currentRecord.Next
-	}
 	Return sc
 }
 
