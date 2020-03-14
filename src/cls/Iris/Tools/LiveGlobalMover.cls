@@ -1,5 +1,5 @@
-/// The goal is moving data without stopping application.<br/>
-/// Globals will be copied to the target database and then globals mapping is setting up.<br/><br/>
+/// The goal is moving data from a database to another database without stopping application.<br/>
+/// Globals will be copied to the target database then a global mapping is setting up.<br/><br/>
 /// <b>Usage :</b> <br/><br/>
 /// <code>
 /// Set mover = ##class(Iris.Tools.LiveGlobalMover).%New()<br/>
@@ -13,8 +13,9 @@
 /// <li>Journal Freeze On Error must be SET to 1.</li>
 /// </ul><br/>
 /// <b>Warning</b><br/>
+/// <b>This is experimental features, Use at your own risk.</b><br/>
 /// <b>Don't use with an active mirror.</b>.<br/>
-/// <b>Currently not tested with ECP</b>.<br/>
+/// <b>Don't use with ECP (Never tested)</b>.<br/>
 Class Iris.Tools.LiveGlobalMover Extends %RegisteredObject
 {
 
@@ -379,7 +380,7 @@ Method dbTargetDirGet() As %String
 Method %OnNew() As %Status [ Private, ServerOnly = 1 ]
 {
 	If ($SYSTEM.Version.SystemMode()="LIVE") {	;  security.
-		$$$ThrowStatus($$$ERROR($$$GeneralError,"Operation not permitted on a live system! This class is in development, must be use for testing purpose."))
+		$$$ThrowStatus($$$ERROR($$$GeneralError,"Operation not permitted on a live system!"))
 	}
 	Quit $$$OK
 }

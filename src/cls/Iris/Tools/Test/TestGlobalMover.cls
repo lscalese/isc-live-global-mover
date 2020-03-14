@@ -14,20 +14,29 @@ Method OnAfterAllTests() As %Status
     Return $$$OK
 }
 
+Method OnBeforeOneTest(suite As %String, class As %String, method As %String) As %Status
+{
+    Set ns = $Namespace
+    zn "%SYS"
+    Do:##Class(Config.MapGlobals).Exists(ns,"Global.ToMoveD") ##class(Config.MapGlobals).Delete(ns,"Global.ToMoveD")
+    zn ns
+    Return ..CleanTestData()
+}
+
 ClassMethod StartUnitTest()
 {
     Set ns = $Namespace
     
     /// remove data and config due to a previous run rest.
-    zn "%SYS"
+    /*zn "%SYS"
     Do ##class(Config.MapGlobals).Delete(ns,"Global.ToMoveD")
     zn ns
-    Do ..CleanTestData()
+    Do ..CleanTestData()*/
     Do ##class(%UnitTest.Manager).RunTest(,"/nodelete")
     Quit
 }
 
-/*Method TestMoveGlobal() As %Status
+Method TestMoveGlobal() As %Status
 {
     Set tSc = $$$OK
     Try {
@@ -44,7 +53,8 @@ ClassMethod StartUnitTest()
         Set tSc = ex.AsStatus()
     }
     Return tSc
-}*/
+}
+
 Method TestMoveGlobalWithConcurrentWrite() As %Status
 {
     Set tSc = $$$OK
