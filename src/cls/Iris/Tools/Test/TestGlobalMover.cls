@@ -5,7 +5,6 @@ Parameter TARGETDB = "targetdb";
 
 Method OnBeforeAllTests() As %Status
 {
-    Do ..SomeThing()
     Return $$$OK
 }
 
@@ -26,12 +25,6 @@ Method OnBeforeOneTest(suite As %String, class As %String, method As %String) As
 ClassMethod StartUnitTest()
 {
     Set ns = $Namespace
-    
-    /// remove data and config due to a previous run rest.
-    /*zn "%SYS"
-    Do ##class(Config.MapGlobals).Delete(ns,"Global.ToMoveD")
-    zn ns
-    Do ..CleanTestData()*/
     Do ##class(%UnitTest.Manager).RunTest(,"/nodelete")
     Quit
 }
@@ -186,6 +179,7 @@ ClassMethod GenerateData(timeout As %Integer = 30, randomHang As %Boolean = 1) A
 	Return $$$OK
 }
 
+/// clean test data
 ClassMethod CleanTestData() As %Status
 {
     Set tDbDir = ##class(Iris.Tools.DBUtils).getDbDir(..#TARGETDB),
@@ -195,11 +189,24 @@ ClassMethod CleanTestData() As %Status
     Return $$$OK
 }
 
-ClassMethod SomeThing() As %String
+ClassMethod SaySomeThing() As %String
 {
-    Set arr(0)="Ok, I check steam special offers ..."
-    Set arr(1)="I have a coffee."
-    Return arr($r($o(arr(""),-1)))
+    Set arr = -1
+    Set arr($i(arr))="Ready to work."
+    Set arr($i(arr))="Yes, milord?"
+    Set arr($i(arr))="What is it?"
+    Set arr($i(arr))="More work?"
+    Set arr($i(arr))="Right-o."
+    Set arr($i(arr))="All right."
+    Set arr($i(arr))="Off I go, then!"
+    Set arr($i(arr))="I guess I can..."
+    Set arr($i(arr))="If you want..."
+    Set arr($i(arr))="No one else available..."
+    Set arr($i(arr))="That's it. I'm dead."
+    Set arr($i(arr))="A horse kicked me once. It hurt."
+    Set arr($i(arr))="Ne m’invitez jamais à dîner, j’aurai toujours un doute."
+    Set msg = $g(arr($r(arr+1)),"D'oh!")
+    Return msg
 }
 
 ClassMethod SetUnitTestRoot(directory As %String) As %Status

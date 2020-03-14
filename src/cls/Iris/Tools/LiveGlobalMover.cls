@@ -22,7 +22,7 @@ Class Iris.Tools.LiveGlobalMover Extends %RegisteredObject
 /// Number of scan journal file.
 Parameter NBPASS = 3;
 
-/// A listbuild contain all globals to move. For test: $lb("^LiveGlobalMover.Test")
+/// A listbuild contain all globals to move. ex: $lb("^LiveGlobalMover.Test")
 Property global As %List;
 
 /// Internal use : contain the current global to move.
@@ -200,7 +200,7 @@ Method lastPassProcess() As %Status [ Private ]
 	Set sc = $$$OK
 	Try {
 		Do ..log($c(9,9)_"Switch mode 10")
-		$$$TOE(sc,##class(Iris.Tools.Freeze).EnableSetSwitch10())
+		$$$TOE(sc,##class(Iris.Tools.Freeze).EnableSetSwitch10()) ; probably some changes here for ECP support.
 		Set frzStart = $zh
 		Do:..disableJrn DISABLE^%NOJRN
 		$$$TOE(sc,..throughJournalRecord(..lastJrnAddress)) ; a last pass on journal file from last address treated.
@@ -211,7 +211,7 @@ Method lastPassProcess() As %Status [ Private ]
 		Do ..log($c(9,9)_"Disable mode 10")
 		Set newFName=""
 		Do ##class(%SYS.Journal.System).RollToNextFile(1,.newFName)
-		Set sc = ##class(Iris.Tools.Freeze).DisableSetSwitch10()
+		Set sc = ##class(Iris.Tools.Freeze).DisableSetSwitch10()	; probably some changes here for ECP support.
 	}Catch(ex) {
 		Set sc = ex.AsStatus()
 		Do ##class(%SYS.System).WriteToConsoleLog("LiveGlobalMover : error while last pass processing "_$SYSTEM.Status.GetErrorText(sc),0,2)
@@ -305,7 +305,7 @@ Method copyCurrentGlobal() As %Status [ Private ]
 		Do:..disableJrn DISABLE^%NOJRN
         Set mergeLine = ..getMergeLineForCurrentGbl()
         Do ..log(mergeLine)
-		Xecute mergeLine
+		Xecute mergeLine	; I'll try to use GLBOCKCOPY instead Merge in a further version.
 		Do:..disableJrn ENABLE^%NOJRN
 	}Catch(ex) {
 		Do:..disableJrn ENABLE^%NOJRN
