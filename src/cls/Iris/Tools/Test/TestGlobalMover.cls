@@ -264,7 +264,7 @@ ClassMethod SaySomeThing() As %String
     Set arr($i(arr))="A horse kicked me once. It hurt."
     Set arr($i(arr))="Ne m’invitez jamais à dîner, j’aurai toujours un doute."
     Set arr($i(arr))="Heaven doors are closed due to an IO issue."
-    Set msg = $g(arr($r(arr+1)),"D'oh!")
+    Set msg = $g(arr($r(arr+2/*to force a random err*/)),"D'oh!")
     Return msg
 }
 
