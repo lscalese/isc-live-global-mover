@@ -1,7 +1,7 @@
 ## What's new in this version
 
-Add unit test.  
-^GBLOCKCOPY Usage instead Merge command.  
+* Add unit test.  
+* ^GBLOCKCOPY Usage instead Merge command (increase performance).  
 
 # Global mover tool
 
@@ -24,7 +24,7 @@ This is very simple, but there is a few steps :
 1. Before starting the copy, we perform a journal switch.
 2. Copy the global from source database to target database.
 3. When the copy is done, we check if there is any new global entries during the copy.  
-   * We through journal files (5 pass) to look for any entries and perform the corresponding command (Set, Kill, ZKill) to the target database.  
+   * We through journal files (3 pass) to look for any entries and perform the corresponding command (Set, Kill, ZKill) to the target database.  
    * After each pass a journal switch is performed in order to have the smallest possible journal file for the last pass.  
    * At the last pass, **the system is temporary switch to mode 10**.  We need to ensure there is no new global entries for a short time.
    * Setting up the global mapping.
@@ -104,6 +104,13 @@ Set tSc = mover.move()
 Explore your data, check global mapping.  
 Advice : Expand the size of the target database in order to avoid expand during the copy.  
 
+## Troubleshot
+
+* Job error with journal restore or GBLOCKCOPY is due to a limite license with community edition.  
+  Use an image base like intersystems/irishealth:2019.4.0.383.0 with a license to fix it.  
+
+  
+
 ## How to start coding
 This repository is ready to code in VSCode with ObjectScript plugin.
 Install [VSCode](https://code.visualstudio.com/) and [ObjectScript](https://marketplace.visualstudio.com/items?itemName=daimor.vscode-objectscript) plugin and open the folder in VSCode.
@@ -128,3 +135,4 @@ Settings file to let you immedietly code in VSCode with [VSCode ObjectScript plu
 
 # .vscode/launch.json
 Config file if you want to debug with VSCode ObjectScript
+

@@ -58,7 +58,7 @@ ClassMethod syncGblockCopy(infile As %String, outfile As %String) As %Status
 	Set pid = $ZChild
 	For  {
 		; wait end of GBLOCKCOPY process
-		Hang 5
+		Hang 2
 		Quit:'##class(%SYS.ProcessQuery).%ExistsId(pid)
 	}
 

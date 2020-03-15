@@ -39,13 +39,23 @@ Method TestMoveGlobalUseGblCopy() As %Status
     Return ..commonMoveGlobal(1)
 }
 
+Method TestMoveGlobalWithConcurrentWrite() As %Status
+{
+    Return ..commonMoveGlobalWithConcurrentWrite(0)
+}
+
+Method TestMoveGlobalWithConcurrentWriteUseGblCopy() As %Status
+{
+    Return ..commonMoveGlobalWithConcurrentWrite(1)
+}
+
 Method commonMoveGlobal(gblockcopyMode As %Boolean) As %Status
 {
     Set tSc = $$$OK
     Try {
         Set timeOutGenData = 15
         Do $$$LogMessage($$$FormatText("Starting generate initial data ^Global.ToMoveD while %1 seconds.",timeOutGenData))
-        $$$TOE(tSc,..GenerateData(timeOutGenData,$$$NO))
+        $$$TOE(tSc,..GenerateData(timeOutGenData))
         Do $$$AssertStatusOK(tSc,$$$FormatText("Generate data while %1 sec.",timeOutGenData))
         Set tSc = ..MoveData(gblockcopyMode)
         Do $$$AssertStatusOK(tSc,$$$FormatText("Global mover return a status: %1.",$SYSTEM.Status.GetOneErrorText(tSc)))
@@ -58,34 +68,26 @@ Method commonMoveGlobal(gblockcopyMode As %Boolean) As %Status
     Return tSc
 }
 
-Method TestMoveGlobalWithConcurrentWrite() As %Status
-{
-    Return ..commonMoveGlobalWithConcurrentWrite(0)
-}
-
-Method TestMoveGlobalWithConcurrentWriteUseGblCopy() As %Status
-{
-    Return ..commonMoveGlobalWithConcurrentWrite(1)
-}
-
 Method commonMoveGlobalWithConcurrentWrite(gblockcopyMode As %Boolean) As %Status
 {
     Set tSc = $$$OK
     Try {
         Set timeOutGenData = 15
         Do $$$LogMessage($$$FormatText("Starting generate initial data ^Global.ToMoveD while %1 seconds.",timeOutGenData))
-        Set tSc = ..GenerateData(timeOutGenData,$$$NO) ; generate inital data
+        Set tSc = ..GenerateData(timeOutGenData) ; generate inital data
         Do $$$AssertStatusOK(tSc,$$$FormatText("Generate data while %1 sec.",timeOutGenData))
         Set timeOutGenData = 60
         Set start = $zh
         Do $$$LogMessage($$$FormatText("Starting a Job that generate data while global moving process.",timeOutGenData))
-        Job ..GenerateData(timeOutGenData,$$$YES)::2   ; generate data while moving
+        Job ..GenerateData(timeOutGenData)::2   ; generate data while moving
         Set jobIsRunning = $Test
         Do $$$AssertEquals(jobIsRunning,1,"Job generate concurrent write : "_jobIsRunning)
+        
         Do $$$LogMessage($$$FormatText("Starting global mover.",timeOutGenData))
         Set tSc = ..MoveData(gblockcopyMode)
         Do $$$AssertStatusOK(tSc,$$$FormatText("Global mover return a status : %1",$System.Status.GetOneErrorText(tSc)))
-        Hang:$d(^CacheTempGenData) (timeOutGenData+2)-($zh-start)
+        Set ^CacheTempStopGenData = 1
+        Hang 1
         Do $$$LogMessage($$$FormatText("Starting checking missing data.",timeOutGenData))
         Set tSc = ..CheckMissingData()
         Do $$$AssertStatusOK(tSc,$$$FormatText("Checking missing data a status %1.",$System.Status.GetOneErrorText(tSc)))
@@ -144,17 +146,17 @@ ClassMethod CompareData() As %Status
         sourceDatabase = ##class(Iris.Tools.DBUtils).getDefaultDBForNS($namespace),
         sDbDir = ##class(Iris.Tools.DBUtils).getDbDir(sourceDatabase),
         tDbDir = ##class(Iris.Tools.DBUtils).getDbDir(..#TARGETDB)
-    
     Set key = ""
     For  {
         Set key = $Order(^["^^"_sDbDir]Global.ToMoveD(key),1,sValue)
         Quit:key=""
         If '$Data(^["^^"_tDbDir]Global.ToMoveD(key),tValue) {
             Set tSc = $$$ERROR(5001,"Data not found in target database.")
-            Quit
+            
         } ElseIf $Listget(sValue,1)'=$Listget(tValue,1) {
             Set tSc = $$$ERROR(5001,"Data missmatch.")
-            Quit
+            ZWrite 
+            b
         }
     }
 
@@ -164,40 +166,69 @@ ClassMethod CompareData() As %Status
 /// Records are added with a $increment key.<br/>
 /// All keys must be striclty continuous 1,2,3....end.<br/>
 /// This method check if there is a missing key Global.ToMoveD
-Method CheckMissingData() As %Status
+ClassMethod CheckMissingData() As %Status
 {
     
     Set tSc = $$$OK,
         tDbDir = ##class(Iris.Tools.DBUtils).getDbDir(..#TARGETDB),
-        key = ""
+        key = "", prevV = ""
     For  {
-        Set prev = +key,
-            key = $Order(^["^^"_tDbDir]Global.ToMoveD(key))
+        Set prev = +key, 
+            key = $Order(^["^^"_tDbDir]Global.ToMoveD(key),1,v)
         Quit:key=""
-        If '(key=(prev + 1)) {
+        If '(key=(prev + 1)) || ( (prevV'="") && (prevV'=($lg(v,1)-1)) ) {
             Set tSc = $$$ERROR(5001,$$$FormatText("Missing key(s) between %1 and %2",prev,key))
+            ;b
             Quit
         }
+        
+        Set prevV=$lg(v,1)
     }
     Return tSc
 }
 
 /// Generate record in ^Global.ToMoveD global <br/>
-ClassMethod GenerateData(timeout As %Integer = 30, randomHang As %Boolean = 1) As %Status
+ClassMethod GenerateData(timeout As %Integer = 30) As %Status
 {
-    Set end = $zh + timeout, cnt = 0, total = 0, max = 15000, maxBeforeHang = $Random(max) + 1, ^CacheTempGenData=1
-    
+    Set end = $zh + timeout, cnt = 0, max = 6000, ^CacheTempGenData=1
     For  {
-        Set ^Global.ToMoveD($Increment(^Global.ToMoveD))=$Listbuild(^Global.ToMoveD),
-            cnt=$Increment(cnt)
-        If cnt =  maxBeforeHang {
-            Set total = (total + cnt), cnt = 0, maxBeforeHang = $Random(max) + 1    ; setup for random hang
-            hang:randomHang 2  ; reduce the IO usage.
+        Quit:$Get(^CacheTempStopGenData,0)=1
+        Lock +^Global.ToMoveD
+        Set id = $Increment(^Global.ToMoveD)
+        Set ^Global.ToMoveD(id)=$Listbuild($Increment(^DataCounter)), cnt=$Increment(cnt)
+        Lock -^Global.ToMoveD
+        If cnt =  max {
+            Set cnt = 0
+            hang 1  ; reduce the IO usage.
             Quit:$zh>end ; check timeout ...
         }
+
+        /*Quit:($Get(^CacheTempStopGenData,0)=1)||($zh>end)
+        Lock +^Global.ToMoveD
+        Set id = $Increment(^Global.ToMoveD)
+        Set ^Global.ToMoveD(id)=$Listbuild($Increment(^DataCounter)), cnt=$Increment(cnt)
+        Lock -^Global.ToMoveD
+        hang 0.005*/
+        
     }
+    Set ^CacheTempStopGenData = 0
     kill ^CacheTempGenData
 	Return $$$OK
+}
+
+ClassMethod GenerateDataTrm() As %Status
+{
+    For  {
+        Quit:$Get(^CacheTempGdStop)=1
+        Lock +^Global.ToMoveD
+        Set id = $Increment(^Global.ToMoveD)
+        Set ^Global.ToMoveD(id)=$Listbuild($Increment(^DataCounter)), cnt=$Increment(cnt)
+        Lock -^Global.ToMoveD
+        Write "."
+        hang 0.01
+    }
+    s ^CacheTempGdStop = 0
+    Return $$$OK
 }
 
 /// clean test data
@@ -206,12 +237,17 @@ ClassMethod CleanTestData() As %Status
     Set tDbDir = ##class(Iris.Tools.DBUtils).getDbDir(..#TARGETDB),
         sourceDatabase = ##class(Iris.Tools.DBUtils).getDefaultDBForNS($namespace),
         sDbDir = ##class(Iris.Tools.DBUtils).getDbDir(sourceDatabase)
-    Kill ^["^^"_tDbDir]Global.ToMoveD, ^["^^"_sDbDir]Global.ToMoveD
+    Kill ^["^^"_tDbDir]Global.ToMoveD, ^["^^"_sDbDir]Global.ToMoveD, ^DataCounter
     Return $$$OK
 }
 
 ClassMethod SaySomeThing() As %String
 {
+    If $g(%SaySomeThing)="" {
+        Set %SaySomeThing = 1
+        Return "Ready to work."
+    }
+    ; ^_^
     Set arr = -1
     Set arr($i(arr))="Ready to work."
     Set arr($i(arr))="Yes, milord?"
@@ -219,6 +255,7 @@ ClassMethod SaySomeThing() As %String
     Set arr($i(arr))="More work?"
     Set arr($i(arr))="Right-o."
     Set arr($i(arr))="All right."
+    Set arr($i(arr))="Alain, Can you explain us What ""KMK"" does it means ?"
     Set arr($i(arr))="Off I go, then!"
     Set arr($i(arr))="I guess I can..."
     Set arr($i(arr))="If you want..."
@@ -226,6 +263,7 @@ ClassMethod SaySomeThing() As %String
     Set arr($i(arr))="That's it. I'm dead."
     Set arr($i(arr))="A horse kicked me once. It hurt."
     Set arr($i(arr))="Ne m’invitez jamais à dîner, j’aurai toujours un doute."
+    Set arr($i(arr))="Heaven doors are closed due to an IO issue."
     Set msg = $g(arr($r(arr+1)),"D'oh!")
     Return msg
 }
