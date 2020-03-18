@@ -155,8 +155,6 @@ ClassMethod CompareData() As %Status
             
         } ElseIf $Listget(sValue,1)'=$Listget(tValue,1) {
             Set tSc = $$$ERROR(5001,"Data missmatch.")
-            ZWrite 
-            b
         }
     }
 
@@ -202,14 +200,6 @@ ClassMethod GenerateData(timeout As %Integer = 30) As %Status
             hang 1  ; reduce the IO usage.
             Quit:$zh>end ; check timeout ...
         }
-
-        /*Quit:($Get(^CacheTempStopGenData,0)=1)||($zh>end)
-        Lock +^Global.ToMoveD
-        Set id = $Increment(^Global.ToMoveD)
-        Set ^Global.ToMoveD(id)=$Listbuild($Increment(^DataCounter)), cnt=$Increment(cnt)
-        Lock -^Global.ToMoveD
-        hang 0.005*/
-        
     }
     Set ^CacheTempStopGenData = 0
     kill ^CacheTempGenData
@@ -243,8 +233,8 @@ ClassMethod CleanTestData() As %Status
 
 ClassMethod SaySomeThing() As %String
 {
-    If $g(%SaySomeThing)="" {
-        Set %SaySomeThing = 1
+    If $g(%zSaySomeThing)="" {
+        Set %zSaySomeThing = 1
         Return "Ready to work."
     }
     ; ^_^

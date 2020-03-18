@@ -63,7 +63,8 @@ ClassMethod syncGblockCopy(infile As %String, outfile As %String) As %Status
 	}
 
 	Set stream=##class(%Stream.FileCharacter).%New()
-	Set sc=stream.LinkToFile(outfile)
+	Set tSc=stream.LinkToFile(outfile)
+	Return:$$$ISERR(tSc) tSc
 	While 'stream.AtEnd {
 		Set line=stream.ReadLine()
 		If line [ "Copy of data has completed" {

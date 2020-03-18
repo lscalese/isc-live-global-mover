@@ -78,12 +78,12 @@ Method prepare() As %Status
 	Set sc = $$$OK
 	Try {
 		Do ..log("[*] Prepare Global mover ...")
-		Do ..log($c(9)_"dbSourceDir for "_..dbSource_"...")
+		Do ..log("dbSourceDir for "_..dbSource_"...")
 		$$$TOE(sc,..dbSourceDirSet(..dbSource))
-		Do ..log($c(9)_"dbSourceDir for "_..dbSource_" is set with value "_..dbSourceDir)
-		Do ..log($c(9)_"dbTargetDir for "_..dbTarget_"...")
+		Do ..log("dbSourceDir for "_..dbSource_" is set with value "_..dbSourceDir)
+		Do ..log("dbTargetDir for "_..dbTarget_"...")
 		$$$TOE(sc,..dbTargetDirSet(..dbTarget))
-		Do ..log($c(9)_"dbTargetDir for "_..dbTarget_" is set with value "_..dbTargetDir)
+		Do ..log("dbTargetDir for "_..dbTarget_" is set with value "_..dbTargetDir)
 	} Catch (ex) {
 		Set sc = ex.AsStatus()
 	}
@@ -282,6 +282,7 @@ Method loadDataFromJournal() As %Status [ Private ]
 		Do ..log("Journal roll to next file "_newFName)
 		Hang 1
 	}
+
 	$$$TOE(sc,..lastPassProcess())
 	Set $li(..secureDeleteFlags,2)=1
 	Return sc
@@ -327,7 +328,7 @@ Method throughJournalRecord(startAfterAddress As %Integer = "") As %Status [ Pri
 			$$$TOE(sc,..currentJournal.Open(nextFname))
 			Set currentJrnFName = nextFname
 			Set ..lastJrnAddress=""
-			Do ..log($c(9,9)_$$$FormatText("Loading Journal %1 ...",currentJrnFName))
+			Do ..log($$$FormatText("Loading Journal %1 ...",currentJrnFName))
 			Set currentRecord=..currentJournal.FirstRecord
 			Quit:'$isobject(currentRecord)
 		}
@@ -391,9 +392,9 @@ Method usingMergeCommand() As %Status [ Private ]
 	Set ptr = 0
 	While $listnext(..global,ptr,gbl) {
 		Set ..currentGlobal = gbl
-		Do ..log($c(9)_$$$FormatText("Starting Copy %1",..currentGlobal))
+		Do ..log($$$FormatText("Starting Copy %1",..currentGlobal))
 		$$$TOE(sc,..copyCurrentGlobal())
-		Do ..log($c(9)_$$$FormatText("Copy %1 OK",..currentGlobal))
+		Do ..log($$$FormatText("Copy %1 OK",..currentGlobal))
 	}
 	Set ..currentGlobal=""
 	Set $li(..secureDeleteFlags,1)=1
@@ -432,7 +433,6 @@ Method usingGBLOCKCOPY() As %Status [ Private ]
 
 	Do ..log("Input gblockcopy file "_infile)
 	Do ..log("Output gblockcopy file "_outfile)
-	;return $$$ERROR(5001,"test")
 	Do ..log("Starting gblockcopy process...")
 	Set tSc = ##class(Iris.Tools.DBUtils).syncGblockCopy(infile,outfile)
 	Do ..log("gblockcopy process ended with status "_$SYSTEM.Status.GetOneErrorText(tSc))
@@ -449,7 +449,7 @@ Method copyCurrentGlobal() As %Status [ Private ]
         Do ..log(mergeLine)
 		Xecute mergeLine	; I'll try to use GLBOCKCOPY instead Merge in a further version.
 		Do:..disableJrn ENABLE^%NOJRN
-	}Catch(ex) {
+	} Catch (ex) {
 		Do:..disableJrn ENABLE^%NOJRN
 		Throw ex
 	}
