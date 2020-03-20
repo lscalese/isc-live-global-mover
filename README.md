@@ -45,6 +45,10 @@ Feel free to improve or modify as needed.
 
 **Run this operation during off-peak hours.**  
 
+**BACKUP your data before running this tool**  
+**Prepare a recovery plan related to this operation.**
+
+
 ## Prerequisites
 This needs to have git and docker installed.
 
