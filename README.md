@@ -43,10 +43,10 @@ Currently not tested with application server.
 Under MIT License, use this tool at your own risk.  
 Feel free to improve or modify as needed.  
 
-**Run this operation during off-peak hours.**  
-
-**BACKUP your data before running this tool**  
+**BACKUP your data before running**  
 **Prepare a recovery plan related to this operation.**
+
+**Run this operation during off-peak hours.**  
 
 
 ## Prerequisites
