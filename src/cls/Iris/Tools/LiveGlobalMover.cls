@@ -401,29 +401,25 @@ Method dbTargetDirSet(dbTarget As %String = {..dbTarget}) As %Status [ Private ]
 /// 
 Method log(message As %String) As %Status
 {
-	Set logMsg = $Zdt($h,3,1)_" "_message,
-	    ^LiveGlobalMover.log($j,$i(^LiveGlobalMover.log($j)))=logMsg
+	Set logMsg = $Zdt($h,3,1)_" ("_$j_") "_message,
+	    ^LiveGlobalMover.log($Increment(^LiveGlobalMover.log))=logMsg
 	Write:..verbose !,logMsg
 	Return $$$OK
 }
 
-ClassMethod outputLogToDevice(pid As %Integer = {$job}) As %Status
+ClassMethod outputLogToDevice() As %Status
 {
-	Set key = $Order(^LiveGlobalMover.log(pid,""),1,log)
+	Set key = $Order(^LiveGlobalMover.log(""),1,log)
 	While (key '= "") {
-		Write !,log
-		Set key = $Order(^LiveGlobalMover.log(pid,key),1,log)
+		Write $$$NL,log
+		Set key = $Order(^LiveGlobalMover.log(key),1,log)
 	}
 	Return $$$OK
 }
 
-ClassMethod purgeLog(pid As %String = "") As %Status
+ClassMethod purgeLog() As %Status
 {
-	If (pid'="") {
-		Kill ^LiveGlobalMover.log(pid)
-	}Else{
-		Kill ^LiveGlobalMover.log
-	}
+	Kill ^LiveGlobalMover.log
 	Return $$$OK
 }
 

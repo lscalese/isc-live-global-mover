@@ -116,16 +116,11 @@ You should delete it manually or set mover.deleteSourceDataAfterMoving=1 for aut
 Logs trace are stored in ^LiveGlobalMover.log.  Show log:  
 
 ```
-Do ##class(Iris.Tools.LiveGlobalMover).outputLogToDevice($j)
+Do ##class(Iris.Tools.LiveGlobalMover).outputLogToDevice()
 ```
 
 Purge logs
 
-```
-Do ##class(Iris.Tools.LiveGlobalMover).purgeLog($j)
-```
-
-Or purge for all pid : 
 ```
 Do ##class(Iris.Tools.LiveGlobalMover).purgeLog()
 ```
