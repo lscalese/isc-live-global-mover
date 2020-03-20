@@ -39,10 +39,11 @@ After the copy, if a switch occurs to a node without the correct global mapping 
 **Don't use with ECP!**  
 Currently not tested with application server.  
 
-**This is experimental, don't use without testing!**
+**This is experimental, don't use without testing!**  
 Under MIT License, use this tool at your own risk.  
-
 Feel free to improve or modify as needed.  
+
+**Run this operation during off-peak hours.**  
 
 ## Prerequisites
 This needs to have git and docker installed.
@@ -102,7 +103,33 @@ Set mover.dbTarget = "targetdb"
 Set tSc = mover.move()
 ```
 Explore your data, check global mapping.  
-Advice : Expand the size of the target database in order to avoid expand during the copy.  
+
+Data aren't deleted by default from the source database.  
+You should delete it manually or set mover.deleteSourceDataAfterMoving=1 for automatic deletion.
+
+### Logs
+
+Logs trace are stored in ^LiveGlobalMover.log.  Show log:  
+
+```
+Do ##class(Iris.Tools.LiveGlobalMover).outputLogToDevice($j)
+```
+
+Purge logs
+
+```
+Do ##class(Iris.Tools.LiveGlobalMover).purgeLog($j)
+```
+
+Or purge for all pid : 
+```
+Do ##class(Iris.Tools.LiveGlobalMover).purgeLog()
+```
+
+## Advice
+
+* Expand the size of the target database in order to avoid expand during the copy.  
+
 
 ## Troubleshot
 

@@ -97,10 +97,10 @@ Method prepare() As %Status
 Method validate() As %Status
 {
 	Set sc = $$$OK,ns=$namespace
-	Return:..dbTargetDir=..dbSourceDir $$$ERROR(5001,"Target DB and Source DB must not the same")
-	Return:..dbSourceDir="" $$$ERROR(5001,"dbSourceDir is not set.")
-	Return:..dbTargetDir="" $$$ERROR(5001,"dbTargetDiris not set.")
-	Return:'##class(%SYS.Namespace).Exists(..namespace) $$$ERROR(5001,$$$FormatText("Namespace %1 does not exist.",..namespace))
+	Return:..dbTargetDir=..dbSourceDir $$$ERROR($$$GeneralError,"Target DB and Source DB must not the same")
+	Return:..dbSourceDir="" $$$ERROR($$$GeneralError,"dbSourceDir is not set.")
+	Return:..dbTargetDir="" $$$ERROR($$$GeneralError,"dbTargetDiris not set.")
+	Return:'##class(%SYS.Namespace).Exists(..namespace) $$$ERROR($$$GeneralError,$$$FormatText("Namespace %1 does not exist.",..namespace))
 	Set ptr = 0
 	While $Listnext(..global,ptr,value) {
 		Set ..currentGlobal = value
@@ -111,7 +111,7 @@ Method validate() As %Status
 		}
 		Zn ns
 		Set gbl = ##class(%Library.GlobalEdit).Open(..currentGlobal,..dbSourceDir,,,.sc)
-		Set:$$$ISERR(sc) sc = $$$ERROR(5001,$$$FormatText("Global %1 does not exist in Database source %2",..currentGlobal,..dbSourceDir))
+		Set:$$$ISERR(sc) sc = $$$ERROR($$$GeneralError,$$$FormatText("Global %1 does not exist in Database source %2",..currentGlobal,..dbSourceDir))
 		Return:$$$ISERR(sc) sc
 		Set sc = ##class(%Library.Routine).CheckSyntax(..getMergeLineForCurrentGbl())
 		Return:$$$ISERR(sc) sc
@@ -181,91 +181,6 @@ Method move() As %Status
 	Return sc
 }
 
-/*
-/// fail to use Journal.Restore api ... code has been commented for further analysis.
-Method journalRestore(firstJournal As %String, lastJournal As %String) As %Status [ Private ]
-{
-	Set tSc = $$$OK, ns = $Namespace, first = ##class(%File).GetFilename(firstJournal),
-		last = ##class(%File).GetFilename(lastJournal)
-	Zn "%SYS"
-	Try{
-		Set restOref = ##class(Journal.Restore).%New()
-		Set restOref.FirstFile = first
-		Set:lastJournal'="" restOref.LastFile = last
-		Set restOref.SwitchOnCurrentJournal = 1
-		;Do restOref.UseJournalLocation(##class(%File).GetDirectory(firstJournal))
-		Set restOref.RollBack = 0 
-		Set restOref.DisableJournaling = ..disableJrn
-		$$$TOE(tSC,restOref.CheckJournalIntegrity(0))
-		Do restOref.SourceDatabases.Insert(..dbSourceDir)
-		$$$TOE(tSc,restOref.RedirectDatabase(..dbSourceDir,..dbTargetDir))
-		Set ptr = 0
-		While $listnext(..global,ptr,gbl) {
-			$$$TOE(tSc,restOref.SelectUpdates(..dbSourceDir,$e(gbl,2,*)))
-		}
-		$$$TOE(tSc,restOref.Run())
-		Set ..firstJrnToReload = ##class(%SYS.Journal.System).GetCurrentFileName()
-	} Catch (ex) {
-		Set tSc = ex.AsStatus()
-	}
-	Zn ns
-	Return tSc
-}
-
-Method loadDataFromJournal() As %Status [ Private ]
-{
-	Set tSc = $$$OK
-	Return:$$$ISERR(tSc) tSc
-	Set:..nbpass<2 ..nbpass=2
-	For i=1:1:(..nbpass-1) {
-		Set firstJournal = ..firstJrnToReload ;,
-			;newFName = "",
-			;lastJournal = ##class(%SYS.Journal.System).GetCurrentFileName(),
-			;tSc = ##class(%SYS.Journal.System).RollToNextFile(1,.newFName),
-			;..firstJrnToReload = newFName
-		Hang 1
-		Quit:$$$ISERR(tSc)
-		;Do ..log($$$FormatText("Global restore from journal pass %1, first journal %2, last journal %3",i,firstJournal,lastJournal))
-		;Set tSc = ..journalRestore(firstJournal,lastJournal)
-		Do ..log($$$FormatText("Global restore from journal pass %1, first journal %2, last journal %3",i,firstJournal,""))
-		Set tSc = ..journalRestore(firstJournal,"")
-		Do ..log($$$FormatText("Global restore from journal pass %1 %2",i,$System.Status.GetOneErrorText(tSc)))
-		Quit:$$$ISERR(tSc)
-	}
-	Return:$$$ISERR(tSc) tSc
-	Set tSc = ..lastPassProcess()
-	Return tSc
-}
-
-Method lastPassProcess() As %Status [ Private ]
-{
-	Set tSc = $$$OK, newFName = ""
-	Try {
-		Do ..log("Switch mode 10")
-		$$$TOE(tSc,##class(Iris.Tools.Freeze).EnableSetSwitch10()) ; probably some changes here for ECP support.
-		Set frzStart = $zh,
-			lastJournal = ##class(%SYS.Journal.System).GetCurrentFileName()
-		;$$$TOE(tSc,##class(%SYS.Journal.System).RollToNextFile(1,.newFName))
-		Do ..log("Journal switch to "_newFName)
-		Do ..log($$$FormatText("Global restore from journal last pass, first journal %1, last journal %2",..firstJrnToReload,lastJournal))
-		;$$$TOE(tSc,..journalRestore( ..firstJrnToReload,lastJournal))
-		$$$TOE(tSc,..journalRestore( ..firstJrnToReload,""))
-		
-		Do ..log("Global restore from journal last pass done.")
-		Do ..log("Set global mapping...")
-		$$$TOE(sc,..setAllGlobalMapping()) 
-		Do ..log($$$FormatText("Time elapsed since freezeSystem %1 sec.",$j(($zh-frzStart),11,6)))
-		Do ..log("Disable mode 10")
-		Set tSc = ##class(Iris.Tools.Freeze).DisableSetSwitch10()	; probably some changes here for ECP support.
-	} Catch (ex) {
-		Do ##class(Iris.Tools.Freeze).DisableSetSwitch10()
-		Set tSc = ex.AsStatus()
-		Do ##class(%SYS.System).WriteToConsoleLog("LiveGlobalMover : error while last pass processing "_$SYSTEM.Status.GetErrorText(sc),0,2)
-		Do ##class(Iris.Tools.Freeze).DisableSetSwitch10()
-	}
-	Return tSc
-}
-*/
 Method loadDataFromJournal() As %Status [ Private ]
 {
 	Set sc = $$$OK
@@ -292,6 +207,7 @@ Method lastPassProcess() As %Status [ Private ]
 {
 	Set sc = $$$OK
 	Try {
+		Do ##class(%SYS.System).WriteToConsoleLog("LiveGlobalMover : last pass process...")
 		Do ..log("Switch mode 10")
 		$$$TOE(sc,##class(Iris.Tools.Freeze).EnableSetSwitch10()) ; probably some changes here for ECP support.
 		Set frzStart = $zh
@@ -299,6 +215,7 @@ Method lastPassProcess() As %Status [ Private ]
 		$$$TOE(sc,..throughJournalRecord(..lastJrnAddress)) ; a last pass on journal file from last address treated.
 		Do:..disableJrn ENABLE^%NOJRN
 		Do ..log("Set global mapping...")
+		Do ##class(%SYS.System).WriteToConsoleLog("LiveGlobalMover : Set global mapping...")
 		$$$TOE(sc,..setAllGlobalMapping()) 
 		Do ..log($$$FormatText("Time elapsed since freezeSystem %1 sec.",$j(($zh-frzStart),11,6)))
 		Do ..log("Disable mode 10")
@@ -321,6 +238,7 @@ Method throughJournalRecord(startAfterAddress As %Integer = "") As %Status [ Pri
 	Set currentJrnFName = ..currentJournal.Name
 	Set currentRecord = $s(startAfterAddress="":..currentJournal.FirstRecord,1:..currentJournal.GetRecordAfter(startAfterAddress))
 	Set lowerDBSourceDir =$zcvt(..dbSourceDir,"l")
+	Do ##class(%SYS.System).WriteToConsoleLog("LiveGlobalMover : current journal "_currentJrnFName)
 	For  {
 		If '$isobject(currentRecord) {
 			Quit:(currentJrnFName=##class(%SYS.Journal.System).GetCurrentFileName())
@@ -328,6 +246,7 @@ Method throughJournalRecord(startAfterAddress As %Integer = "") As %Status [ Pri
 			$$$TOE(sc,..currentJournal.Open(nextFname))
 			Set currentJrnFName = nextFname
 			Set ..lastJrnAddress=""
+			Do ##class(%SYS.System).WriteToConsoleLog("LiveGlobalMover : current journal "_currentJrnFName)
 			Do ..log($$$FormatText("Loading Journal %1 ...",currentJrnFName))
 			Set currentRecord=..currentJournal.FirstRecord
 			Quit:'$isobject(currentRecord)
@@ -420,6 +339,7 @@ Method usingGBLOCKCOPY() As %Status [ Private ]
 	Do gblockcopyInput.WriteLine("No") ; All Globals?
 	Set ptr = 0
 	While $listnext(..global,ptr,gbl) {
+		Do ..log("Add global to move "_gbl)
 		Do gblockcopyInput.WriteLine($e(gbl,2,*)) ; Global ^
 	}
 	Do gblockcopyInput.WriteLine("")  ; Global ^
@@ -482,8 +402,18 @@ Method dbTargetDirSet(dbTarget As %String = {..dbTarget}) As %Status [ Private ]
 Method log(message As %String) As %Status
 {
 	Set logMsg = $Zdt($h,3,1)_" "_message,
-	    ^LiveGlobalMover.log($i(^LiveGlobalMover.log($j)))=logMsg
+	    ^LiveGlobalMover.log($j,$i(^LiveGlobalMover.log($j)))=logMsg
 	Write:..verbose !,logMsg
+	Return $$$OK
+}
+
+ClassMethod outputLogToDevice(pid As %Integer = {$job}) As %Status
+{
+	Set key = $Order(^LiveGlobalMover.log(pid,""),1,log)
+	While (key '= "") {
+		Write !,log
+		Set key = $Order(^LiveGlobalMover.log(pid,key),1,log)
+	}
 	Return $$$OK
 }
 
@@ -521,9 +451,9 @@ Method dbTargetDirGet() As %String
 
 Method %OnNew() As %Status [ Private, ServerOnly = 1 ]
 {
-	If ($SYSTEM.Version.SystemMode()="LIVE") {	;  security.
-		$$$ThrowStatus($$$ERROR($$$GeneralError,"Operation not permitted on a live system!"))
-	}
+	;If ($SYSTEM.Version.SystemMode()="LIVE") {	;  security.
+	;	$$$ThrowStatus($$$ERROR($$$GeneralError,"Operation not permitted on a live system!"))
+	;}
 	Quit $$$OK
 }
 

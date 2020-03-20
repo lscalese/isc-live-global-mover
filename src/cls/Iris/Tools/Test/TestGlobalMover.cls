@@ -24,7 +24,6 @@ Method OnBeforeOneTest(suite As %String, class As %String, method As %String) As
 
 ClassMethod StartUnitTest()
 {
-    Set ns = $Namespace
     Do ##class(%UnitTest.Manager).RunTest(,"/nodelete")
     Quit
 }
@@ -151,10 +150,10 @@ ClassMethod CompareData() As %Status
         Set key = $Order(^["^^"_sDbDir]Global.ToMoveD(key),1,sValue)
         Quit:key=""
         If '$Data(^["^^"_tDbDir]Global.ToMoveD(key),tValue) {
-            Set tSc = $$$ERROR(5001,"Data not found in target database.")
+            Set tSc = $$$ERROR($$$GeneralError,"Data not found in target database.")
             
         } ElseIf $Listget(sValue,1)'=$Listget(tValue,1) {
-            Set tSc = $$$ERROR(5001,"Data missmatch.")
+            Set tSc = $$$ERROR($$$GeneralError,"Data missmatch.")
         }
     }
 
@@ -175,7 +174,7 @@ ClassMethod CheckMissingData() As %Status
             key = $Order(^["^^"_tDbDir]Global.ToMoveD(key),1,v)
         Quit:key=""
         If '(key=(prev + 1)) || ( (prevV'="") && (prevV'=($lg(v,1)-1)) ) {
-            Set tSc = $$$ERROR(5001,$$$FormatText("Missing key(s) between %1 and %2",prev,key))
+            Set tSc = $$$ERROR($$$GeneralError,$$$FormatText("Missing key(s) between %1 and %2",prev,key))
             ;b
             Quit
         }
