@@ -1,4 +1,4 @@
-Class Iris.Tools.Test.TestGlobalMover Extends %UnitTest.TestCase
+Class UnitTest.Iris.Tools.LiveGlobalMover Extends %UnitTest.TestCase
 {
 
 Parameter TARGETDB = "targetdb";

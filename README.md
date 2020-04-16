@@ -72,17 +72,16 @@ $ docker-compose build
 $ docker-compose up -d
 ```
 
+# Installation from ZPM client
+
+```
+zpm
+install live-global-mover
+```
+
 ## Test installation
 
-Open IRIS terminal:
-
-```
-docker exec -it isc-live-global-mover_iris_1 irissession iris
-zn "IRISAPP"
-Write ##class(Iris.Tools.Test.TestGlobalMover).SaySomeThing()
-```
-
-## Unit test
+### Unit test
 
 The unit test perform two operations : 
 
@@ -94,7 +93,8 @@ See class Iris.Tools.Test.TestGlobalMover
 Starting unit test : 
 ```
 zn "IRISAPP"
-Do ##class(Iris.Tools.Test.TestGlobalMover).StartUnitTest()
+Set ^UnitTestRoot = "/irisdev/app/tests/"
+Do ##class(%UnitTest.Manager).RunTest(,"/nodelete")
 ```
 
 ## Example

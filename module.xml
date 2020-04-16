@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+  <Document name="live-global-mover.ZPM">
+    <Module>
+        <Name>live-global-mover</Name>
+        <Version>0.9.4</Version>
+        <Packaging>module</Packaging>
+        <SourcesRoot>src</SourcesRoot>
+        <Resource Name="Iris.Tools.PKG"/>
+        <UnitTest Name="/tests" Package="UnitTest.Iris.Tools" Phase="test"/>
+    </Module>
+  </Document>
+</Export>

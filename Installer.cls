@@ -20,11 +20,6 @@ XData setup
     />
   </Namespace>
   <SystemSetting Name="Config.Journal.FreezeOnError" Value="1"/>
-  <Namespace Name="${Namespace}">
-    <Invoke Class="Iris.Tools.Test.TestGlobalMover" Method="SetUnitTestRoot">
-      <Arg Value="/irisdev/app/src/cls/Iris/Tools/Test/"/>
-    </Invoke>
-  </Namespace>
 </Manifest>
 }
 
