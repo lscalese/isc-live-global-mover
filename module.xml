@@ -3,7 +3,8 @@
   <Document name="live-global-mover.ZPM">
     <Module>
         <Name>live-global-mover</Name>
-        <Version>0.9.4</Version>
+        <Version>0.9.5</Version>
+        <Description>Tools to moving large globals from a database to another database.</Description>
         <Packaging>module</Packaging>
         <SourcesRoot>src</SourcesRoot>
         <Resource Name="Iris.Tools.PKG"/>
