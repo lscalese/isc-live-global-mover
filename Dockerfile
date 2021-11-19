@@ -4,6 +4,7 @@
 # ARG IMAGE=store/intersystems/iris-community:2020.1.0.199.0
 ARG IMAGE=intersystemsdc/iris-community:2019.4.0.383.0-zpm
 # ARG IMAGE=intersystems/irishealth:2019.4.0.383.0
+ARG IMAGE=intersystemsdc/iris-community:latest
 FROM $IMAGE
 
 USER root
